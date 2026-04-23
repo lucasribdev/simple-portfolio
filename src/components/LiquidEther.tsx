@@ -1,6 +1,58 @@
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
-import './LiquidEther.css';
+import React, { useEffect, useRef } from "react";
+import * as THREE from "three";
+
+export interface LiquidEtherProps {
+  mouseForce?: number;
+  cursorSize?: number;
+  isViscous?: boolean;
+  viscous?: number;
+  iterationsViscous?: number;
+  iterationsPoisson?: number;
+  dt?: number;
+  BFECC?: boolean;
+  resolution?: number;
+  isBounce?: boolean;
+  colors?: string[];
+  style?: React.CSSProperties;
+  className?: string;
+  autoDemo?: boolean;
+  autoSpeed?: number;
+  autoIntensity?: number;
+  takeoverDuration?: number;
+  autoResumeDelay?: number;
+  autoRampDuration?: number;
+}
+
+interface SimOptions {
+  iterations_poisson: number;
+  iterations_viscous: number;
+  mouse_force: number;
+  resolution: number;
+  cursor_size: number;
+  viscous: number;
+  isBounce: boolean;
+  dt: number;
+  isViscous: boolean;
+  BFECC: boolean;
+}
+
+interface LiquidEtherWebGL {
+  output?: { simulation?: { options: SimOptions; resize: () => void } };
+  autoDriver?: {
+    enabled: boolean;
+    speed: number;
+    resumeDelay: number;
+    rampDurationMs: number;
+    mouse?: { autoIntensity: number; takeoverDuration: number };
+    forceStop: () => void;
+  };
+  resize: () => void;
+  start: () => void;
+  pause: () => void;
+  dispose: () => void;
+}
+
+const defaultColors = ["#5227FF", "#FF9FFC", "#B497CF"];
 
 export default function LiquidEther({
   mouseForce = 20,
@@ -13,37 +65,33 @@ export default function LiquidEther({
   BFECC = true,
   resolution = 0.5,
   isBounce = false,
-  colors = ['#5227FF', '#FF9FFC', '#B497CF'],
+  colors = defaultColors,
   style = {},
-  className = '',
+  className = "",
   autoDemo = true,
   autoSpeed = 0.5,
   autoIntensity = 2.2,
   takeoverDuration = 0.25,
   autoResumeDelay = 1000,
-  autoRampDuration = 0.6
-}) {
-  const mountRef = useRef(null);
-  const webglRef = useRef(null);
-  const resizeObserverRef = useRef(null);
-  const rafRef = useRef(null);
-  const intersectionObserverRef = useRef(null);
-  const isVisibleRef = useRef(true);
-  const resizeRafRef = useRef(null);
+  autoRampDuration = 0.6,
+}: LiquidEtherProps): React.ReactElement {
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const webglRef = useRef<LiquidEtherWebGL | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const intersectionObserverRef = useRef<IntersectionObserver | null>(null);
+  const isVisibleRef = useRef<boolean>(true);
+  const resizeRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
-    function makePaletteTexture(stops) {
-      let arr;
+    function makePaletteTexture(stops: string[]): THREE.DataTexture {
+      let arr: string[];
       if (Array.isArray(stops) && stops.length > 0) {
-        if (stops.length === 1) {
-          arr = [stops[0], stops[0]];
-        } else {
-          arr = stops;
-        }
+        arr = stops.length === 1 ? [stops[0], stops[0]] : stops;
       } else {
-        arr = ['#ffffff', '#ffffff'];
+        arr = ["#ffffff", "#ffffff"];
       }
       const w = arr.length;
       const data = new Uint8Array(w * 4);
@@ -65,36 +113,40 @@ export default function LiquidEther({
     }
 
     const paletteTex = makePaletteTexture(colors);
-    const bgVec4 = new THREE.Vector4(0, 0, 0, 0); // always transparent
+    // Hard-code transparent background vector (alpha 0)
+    const bgVec4 = new THREE.Vector4(0, 0, 0, 0);
 
     class CommonClass {
-      constructor() {
-        this.width = 0;
-        this.height = 0;
-        this.aspect = 1;
-        this.pixelRatio = 1;
-        this.isMobile = false;
-        this.breakpoint = 768;
-        this.fboWidth = null;
-        this.fboHeight = null;
-        this.time = 0;
-        this.delta = 0;
-        this.container = null;
-        this.renderer = null;
-        this.clock = null;
-      }
-      init(container) {
+      width = 0;
+      height = 0;
+      aspect = 1;
+      pixelRatio = 1;
+      isMobile = false;
+      breakpoint = 768;
+      fboWidth: number | null = null;
+      fboHeight: number | null = null;
+      time = 0;
+      delta = 0;
+      container: HTMLElement | null = null;
+      renderer: THREE.WebGLRenderer | null = null;
+      clock: THREE.Clock | null = null;
+      init(container: HTMLElement) {
         this.container = container;
         this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
         this.resize();
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+        });
+        // Always transparent
         this.renderer.autoClear = false;
         this.renderer.setClearColor(new THREE.Color(0x000000), 0);
         this.renderer.setPixelRatio(this.pixelRatio);
         this.renderer.setSize(this.width, this.height);
-        this.renderer.domElement.style.width = '100%';
-        this.renderer.domElement.style.height = '100%';
-        this.renderer.domElement.style.display = 'block';
+        const el = this.renderer.domElement;
+        el.style.width = "100%";
+        el.style.height = "100%";
+        el.style.display = "block";
         this.clock = new THREE.Clock();
         this.clock.start();
       }
@@ -104,9 +156,11 @@ export default function LiquidEther({
         this.width = Math.max(1, Math.floor(rect.width));
         this.height = Math.max(1, Math.floor(rect.height));
         this.aspect = this.width / this.height;
-        if (this.renderer) this.renderer.setSize(this.width, this.height, false);
+        if (this.renderer)
+          this.renderer.setSize(this.width, this.height, false);
       }
       update() {
+        if (!this.clock) return;
         this.delta = this.clock.getDelta();
         this.time += this.delta;
       }
@@ -114,71 +168,89 @@ export default function LiquidEther({
     const Common = new CommonClass();
 
     class MouseClass {
-      constructor() {
-        this.mouseMoved = false;
-        this.coords = new THREE.Vector2();
-        this.coords_old = new THREE.Vector2();
-        this.diff = new THREE.Vector2();
-        this.timer = null;
-        this.container = null;
-        this.docTarget = null;
-        this.listenerTarget = null;
-        this.isHoverInside = false;
-        this.hasUserControl = false;
-        this.isAutoActive = false;
-        this.autoIntensity = 2.0;
-        this.takeoverActive = false;
-        this.takeoverStartTime = 0;
-        this.takeoverDuration = 0.25;
-        this.takeoverFrom = new THREE.Vector2();
-        this.takeoverTo = new THREE.Vector2();
-        this.onInteract = null;
-        this._onMouseMove = this.onDocumentMouseMove.bind(this);
-        this._onTouchStart = this.onDocumentTouchStart.bind(this);
-        this._onTouchMove = this.onDocumentTouchMove.bind(this);
-        this._onTouchEnd = this.onTouchEnd.bind(this);
-        this._onDocumentLeave = this.onDocumentLeave.bind(this);
-      }
-      init(container) {
+      mouseMoved = false;
+      coords = new THREE.Vector2();
+      coords_old = new THREE.Vector2();
+      diff = new THREE.Vector2();
+      timer: number | null = null;
+      container: HTMLElement | null = null;
+      docTarget: Document | null = null;
+      listenerTarget: Window | null = null;
+      isHoverInside = false;
+      hasUserControl = false;
+      isAutoActive = false;
+      autoIntensity = 2.0;
+      takeoverActive = false;
+      takeoverStartTime = 0;
+      takeoverDuration = 0.25;
+      takeoverFrom = new THREE.Vector2();
+      takeoverTo = new THREE.Vector2();
+      onInteract: (() => void) | null = null;
+      private _onMouseMove = this.onDocumentMouseMove.bind(this);
+      private _onTouchStart = this.onDocumentTouchStart.bind(this);
+      private _onTouchMove = this.onDocumentTouchMove.bind(this);
+      private _onTouchEnd = this.onTouchEnd.bind(this);
+      private _onDocumentLeave = this.onDocumentLeave.bind(this);
+      init(container: HTMLElement) {
         this.container = container;
         this.docTarget = container.ownerDocument || null;
         const defaultView =
-          (this.docTarget && this.docTarget.defaultView) || (typeof window !== 'undefined' ? window : null);
+          this.docTarget?.defaultView ||
+          (typeof window !== "undefined" ? window : null);
         if (!defaultView) return;
         this.listenerTarget = defaultView;
-        this.listenerTarget.addEventListener('mousemove', this._onMouseMove);
-        this.listenerTarget.addEventListener('touchstart', this._onTouchStart, { passive: true });
-        this.listenerTarget.addEventListener('touchmove', this._onTouchMove, { passive: true });
-        this.listenerTarget.addEventListener('touchend', this._onTouchEnd);
-        if (this.docTarget) {
-          this.docTarget.addEventListener('mouseleave', this._onDocumentLeave);
-        }
+        this.listenerTarget.addEventListener("mousemove", this._onMouseMove);
+        this.listenerTarget.addEventListener("touchstart", this._onTouchStart, {
+          passive: true,
+        });
+        this.listenerTarget.addEventListener("touchmove", this._onTouchMove, {
+          passive: true,
+        });
+        this.listenerTarget.addEventListener("touchend", this._onTouchEnd);
+        this.docTarget?.addEventListener("mouseleave", this._onDocumentLeave);
       }
       dispose() {
         if (this.listenerTarget) {
-          this.listenerTarget.removeEventListener('mousemove', this._onMouseMove);
-          this.listenerTarget.removeEventListener('touchstart', this._onTouchStart);
-          this.listenerTarget.removeEventListener('touchmove', this._onTouchMove);
-          this.listenerTarget.removeEventListener('touchend', this._onTouchEnd);
+          this.listenerTarget.removeEventListener(
+            "mousemove",
+            this._onMouseMove,
+          );
+          this.listenerTarget.removeEventListener(
+            "touchstart",
+            this._onTouchStart,
+          );
+          this.listenerTarget.removeEventListener(
+            "touchmove",
+            this._onTouchMove,
+          );
+          this.listenerTarget.removeEventListener("touchend", this._onTouchEnd);
         }
         if (this.docTarget) {
-          this.docTarget.removeEventListener('mouseleave', this._onDocumentLeave);
+          this.docTarget.removeEventListener(
+            "mouseleave",
+            this._onDocumentLeave,
+          );
         }
         this.listenerTarget = null;
         this.docTarget = null;
         this.container = null;
       }
-      isPointInside(clientX, clientY) {
+      private isPointInside(clientX: number, clientY: number) {
         if (!this.container) return false;
         const rect = this.container.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return false;
-        return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        return (
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+        );
       }
-      updateHoverState(clientX, clientY) {
+      private updateHoverState(clientX: number, clientY: number) {
         this.isHoverInside = this.isPointInside(clientX, clientY);
         return this.isHoverInside;
       }
-      setCoords(x, y) {
+      setCoords(x: number, y: number) {
         if (!this.container) return;
         if (this.timer) window.clearTimeout(this.timer);
         const rect = this.container.getBoundingClientRect();
@@ -191,17 +263,16 @@ export default function LiquidEther({
           this.mouseMoved = false;
         }, 100);
       }
-      setNormalized(nx, ny) {
+      setNormalized(nx: number, ny: number) {
         this.coords.set(nx, ny);
         this.mouseMoved = true;
       }
-      onDocumentMouseMove(event) {
+      onDocumentMouseMove(event: MouseEvent) {
         if (!this.updateHoverState(event.clientX, event.clientY)) return;
         if (this.onInteract) this.onInteract();
         if (this.isAutoActive && !this.hasUserControl && !this.takeoverActive) {
           if (!this.container) return;
           const rect = this.container.getBoundingClientRect();
-          if (rect.width === 0 || rect.height === 0) return;
           const nx = (event.clientX - rect.left) / rect.width;
           const ny = (event.clientY - rect.top) / rect.height;
           this.takeoverFrom.copy(this.coords);
@@ -215,7 +286,7 @@ export default function LiquidEther({
         this.setCoords(event.clientX, event.clientY);
         this.hasUserControl = true;
       }
-      onDocumentTouchStart(event) {
+      onDocumentTouchStart(event: TouchEvent) {
         if (event.touches.length !== 1) return;
         const t = event.touches[0];
         if (!this.updateHoverState(t.clientX, t.clientY)) return;
@@ -223,7 +294,7 @@ export default function LiquidEther({
         this.setCoords(t.clientX, t.clientY);
         this.hasUserControl = true;
       }
-      onDocumentTouchMove(event) {
+      onDocumentTouchMove(event: TouchEvent) {
         if (event.touches.length !== 1) return;
         const t = event.touches[0];
         if (!this.updateHoverState(t.clientX, t.clientY)) return;
@@ -238,7 +309,9 @@ export default function LiquidEther({
       }
       update() {
         if (this.takeoverActive) {
-          const t = (performance.now() - this.takeoverStartTime) / (this.takeoverDuration * 1000);
+          const t =
+            (performance.now() - this.takeoverStartTime) /
+            (this.takeoverDuration * 1000);
           if (t >= 1) {
             this.takeoverActive = false;
             this.coords.copy(this.takeoverTo);
@@ -251,32 +324,52 @@ export default function LiquidEther({
         }
         this.diff.subVectors(this.coords, this.coords_old);
         this.coords_old.copy(this.coords);
-        if (this.coords_old.x === 0 && this.coords_old.y === 0) this.diff.set(0, 0);
-        if (this.isAutoActive && !this.takeoverActive) this.diff.multiplyScalar(this.autoIntensity);
+        if (this.coords_old.x === 0 && this.coords_old.y === 0)
+          this.diff.set(0, 0);
+        if (this.isAutoActive && !this.takeoverActive)
+          this.diff.multiplyScalar(this.autoIntensity);
       }
     }
     const Mouse = new MouseClass();
 
     class AutoDriver {
-      constructor(mouse, manager, opts) {
+      mouse: MouseClass;
+      manager: WebGLManager;
+      enabled: boolean;
+      speed: number;
+      resumeDelay: number;
+      rampDurationMs: number;
+      active = false;
+      current = new THREE.Vector2(0, 0);
+      target = new THREE.Vector2();
+      lastTime = performance.now();
+      activationTime = 0;
+      margin = 0.2;
+      private _tmpDir = new THREE.Vector2();
+      constructor(
+        mouse: MouseClass,
+        manager: WebGLManager,
+        opts: {
+          enabled: boolean;
+          speed: number;
+          resumeDelay: number;
+          rampDuration: number;
+        },
+      ) {
         this.mouse = mouse;
         this.manager = manager;
         this.enabled = opts.enabled;
-        this.speed = opts.speed; // normalized units/sec
-        this.resumeDelay = opts.resumeDelay || 3000; // ms
+        this.speed = opts.speed;
+        this.resumeDelay = opts.resumeDelay || 3000;
         this.rampDurationMs = (opts.rampDuration || 0) * 1000;
-        this.active = false;
-        this.current = new THREE.Vector2(0, 0);
-        this.target = new THREE.Vector2();
-        this.lastTime = performance.now();
-        this.activationTime = 0;
-        this.margin = 0.2;
-        this._tmpDir = new THREE.Vector2(); // reuse temp vector to avoid per-frame alloc
         this.pickNewTarget();
       }
       pickNewTarget() {
         const r = Math.random;
-        this.target.set((r() * 2 - 1) * (1 - this.margin), (r() * 2 - 1) * (1 - this.margin));
+        this.target.set(
+          (r() * 2 - 1) * (1 - this.margin),
+          (r() * 2 - 1) * (1 - this.margin),
+        );
       }
       forceStop() {
         this.active = false;
@@ -314,7 +407,10 @@ export default function LiquidEther({
         dir.normalize();
         let ramp = 1;
         if (this.rampDurationMs > 0) {
-          const t = Math.min(1, (now - this.activationTime) / this.rampDurationMs);
+          const t = Math.min(
+            1,
+            (now - this.activationTime) / this.rampDurationMs,
+          );
           ramp = t * t * (3 - 2 * t);
         }
         const step = this.speed * dtSec * ramp;
@@ -495,27 +591,32 @@ export default function LiquidEther({
 }
 `;
 
+    type Uniforms = Record<string, { value: any }>;
+
     class ShaderPass {
-      constructor(props) {
+      props: any;
+      uniforms?: Uniforms;
+      scene: THREE.Scene | null = null;
+      camera: THREE.Camera | null = null;
+      material: THREE.RawShaderMaterial | null = null;
+      geometry: THREE.BufferGeometry | null = null;
+      plane: THREE.Mesh | null = null;
+      constructor(props: any) {
         this.props = props || {};
         this.uniforms = this.props.material?.uniforms;
-        this.scene = null;
-        this.camera = null;
-        this.material = null;
-        this.geometry = null;
-        this.plane = null;
       }
-      init() {
+      init(..._args: any[]) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.Camera();
         if (this.uniforms) {
           this.material = new THREE.RawShaderMaterial(this.props.material);
-          this.geometry = new THREE.PlaneGeometry(2.0, 2.0);
+          this.geometry = new THREE.PlaneGeometry(2, 2);
           this.plane = new THREE.Mesh(this.geometry, this.material);
           this.scene.add(this.plane);
         }
       }
-      update() {
+      update(..._args: any[]) {
+        if (!Common.renderer || !this.scene || !this.camera) return;
         Common.renderer.setRenderTarget(this.props.output || null);
         Common.renderer.render(this.scene, this.camera);
         Common.renderer.setRenderTarget(null);
@@ -523,7 +624,8 @@ export default function LiquidEther({
     }
 
     class Advection extends ShaderPass {
-      constructor(simProps) {
+      line!: THREE.LineSegments;
+      constructor(simProps: any) {
         super({
           material: {
             vertexShader: face_vert,
@@ -534,10 +636,10 @@ export default function LiquidEther({
               fboSize: { value: simProps.fboSize },
               velocity: { value: simProps.src.texture },
               dt: { value: simProps.dt },
-              isBFECC: { value: true }
-            }
+              isBFECC: { value: true },
+            },
           },
-          output: simProps.dst
+          output: simProps.dst,
         });
         this.uniforms = this.props.material.uniforms;
         this.init();
@@ -549,31 +651,42 @@ export default function LiquidEther({
       createBoundary() {
         const boundaryG = new THREE.BufferGeometry();
         const vertices_boundary = new Float32Array([
-          -1, -1, 0, -1, 1, 0, -1, 1, 0, 1, 1, 0, 1, 1, 0, 1, -1, 0, 1, -1, 0, -1, -1, 0
+          -1, -1, 0, -1, 1, 0, -1, 1, 0, 1, 1, 0, 1, 1, 0, 1, -1, 0, 1, -1, 0,
+          -1, -1, 0,
         ]);
-        boundaryG.setAttribute('position', new THREE.BufferAttribute(vertices_boundary, 3));
+        boundaryG.setAttribute(
+          "position",
+          new THREE.BufferAttribute(vertices_boundary, 3),
+        );
         const boundaryM = new THREE.RawShaderMaterial({
           vertexShader: line_vert,
           fragmentShader: advection_frag,
-          uniforms: this.uniforms
+          uniforms: this.uniforms!,
         });
         this.line = new THREE.LineSegments(boundaryG, boundaryM);
-        this.scene.add(this.line);
+        this.scene!.add(this.line);
       }
-      update({ dt, isBounce, BFECC }) {
-        this.uniforms.dt.value = dt;
-        this.line.visible = isBounce;
-        this.uniforms.isBFECC.value = BFECC;
+      update(...args: any[]) {
+        const { dt, isBounce, BFECC } = (args[0] || {}) as {
+          dt?: number;
+          isBounce?: boolean;
+          BFECC?: boolean;
+        };
+        if (!this.uniforms) return;
+        if (typeof dt === "number") this.uniforms.dt.value = dt;
+        if (typeof isBounce === "boolean") this.line.visible = isBounce;
+        if (typeof BFECC === "boolean") this.uniforms.isBFECC.value = BFECC;
         super.update();
       }
     }
 
     class ExternalForce extends ShaderPass {
-      constructor(simProps) {
+      mouse!: THREE.Mesh;
+      constructor(simProps: any) {
         super({ output: simProps.dst });
         this.init(simProps);
       }
-      init(simProps) {
+      init(simProps: any) {
         super.init();
         const mouseG = new THREE.PlaneGeometry(1, 1);
         const mouseM = new THREE.RawShaderMaterial({
@@ -583,37 +696,46 @@ export default function LiquidEther({
           depthWrite: false,
           uniforms: {
             px: { value: simProps.cellScale },
-            force: { value: new THREE.Vector2(0.0, 0.0) },
-            center: { value: new THREE.Vector2(0.0, 0.0) },
-            scale: { value: new THREE.Vector2(simProps.cursor_size, simProps.cursor_size) }
-          }
+            force: { value: new THREE.Vector2(0, 0) },
+            center: { value: new THREE.Vector2(0, 0) },
+            scale: {
+              value: new THREE.Vector2(
+                simProps.cursor_size,
+                simProps.cursor_size,
+              ),
+            },
+          },
         });
         this.mouse = new THREE.Mesh(mouseG, mouseM);
-        this.scene.add(this.mouse);
+        this.scene!.add(this.mouse);
       }
-      update(props) {
-        const forceX = (Mouse.diff.x / 2) * props.mouse_force;
-        const forceY = (Mouse.diff.y / 2) * props.mouse_force;
-        const cursorSizeX = props.cursor_size * props.cellScale.x;
-        const cursorSizeY = props.cursor_size * props.cellScale.y;
+      update(...args: any[]) {
+        const props = args[0] || {};
+        const forceX = (Mouse.diff.x / 2) * (props.mouse_force || 0);
+        const forceY = (Mouse.diff.y / 2) * (props.mouse_force || 0);
+        const cellScale = props.cellScale || { x: 1, y: 1 };
+        const cursorSize = props.cursor_size || 0;
+        const cursorSizeX = cursorSize * cellScale.x;
+        const cursorSizeY = cursorSize * cellScale.y;
         const centerX = Math.min(
-          Math.max(Mouse.coords.x, -1 + cursorSizeX + props.cellScale.x * 2),
-          1 - cursorSizeX - props.cellScale.x * 2
+          Math.max(Mouse.coords.x, -1 + cursorSizeX + cellScale.x * 2),
+          1 - cursorSizeX - cellScale.x * 2,
         );
         const centerY = Math.min(
-          Math.max(Mouse.coords.y, -1 + cursorSizeY + props.cellScale.y * 2),
-          1 - cursorSizeY - props.cellScale.y * 2
+          Math.max(Mouse.coords.y, -1 + cursorSizeY + cellScale.y * 2),
+          1 - cursorSizeY - cellScale.y * 2,
         );
-        const uniforms = this.mouse.material.uniforms;
+        const uniforms = (this.mouse.material as THREE.RawShaderMaterial)
+          .uniforms;
         uniforms.force.value.set(forceX, forceY);
         uniforms.center.value.set(centerX, centerY);
-        uniforms.scale.value.set(props.cursor_size, props.cursor_size);
+        uniforms.scale.value.set(cursorSize, cursorSize);
         super.update();
       }
     }
 
     class Viscous extends ShaderPass {
-      constructor(simProps) {
+      constructor(simProps: any) {
         super({
           material: {
             vertexShader: face_vert,
@@ -624,19 +746,26 @@ export default function LiquidEther({
               velocity_new: { value: simProps.dst_.texture },
               v: { value: simProps.viscous },
               px: { value: simProps.cellScale },
-              dt: { value: simProps.dt }
-            }
+              dt: { value: simProps.dt },
+            },
           },
           output: simProps.dst,
           output0: simProps.dst_,
-          output1: simProps.dst
+          output1: simProps.dst,
         });
         this.init();
       }
-      update({ viscous, iterations, dt }) {
-        let fbo_in, fbo_out;
-        this.uniforms.v.value = viscous;
-        for (let i = 0; i < iterations; i++) {
+      update(...args: any[]) {
+        const { viscous, iterations, dt } = (args[0] || {}) as {
+          viscous?: number;
+          iterations?: number;
+          dt?: number;
+        };
+        if (!this.uniforms) return;
+        let fbo_in: any, fbo_out: any;
+        if (typeof viscous === "number") this.uniforms.v.value = viscous;
+        const iter = iterations ?? 0;
+        for (let i = 0; i < iter; i++) {
           if (i % 2 === 0) {
             fbo_in = this.props.output0;
             fbo_out = this.props.output1;
@@ -646,7 +775,7 @@ export default function LiquidEther({
           }
           this.uniforms.velocity_new.value = fbo_in.texture;
           this.props.output = fbo_out;
-          this.uniforms.dt.value = dt;
+          if (typeof dt === "number") this.uniforms.dt.value = dt;
           super.update();
         }
         return fbo_out;
@@ -654,7 +783,7 @@ export default function LiquidEther({
     }
 
     class Divergence extends ShaderPass {
-      constructor(simProps) {
+      constructor(simProps: any) {
         super({
           material: {
             vertexShader: face_vert,
@@ -663,21 +792,24 @@ export default function LiquidEther({
               boundarySpace: { value: simProps.boundarySpace },
               velocity: { value: simProps.src.texture },
               px: { value: simProps.cellScale },
-              dt: { value: simProps.dt }
-            }
+              dt: { value: simProps.dt },
+            },
           },
-          output: simProps.dst
+          output: simProps.dst,
         });
         this.init();
       }
-      update({ vel }) {
-        this.uniforms.velocity.value = vel.texture;
+      update(...args: any[]) {
+        const { vel } = (args[0] || {}) as { vel?: any };
+        if (this.uniforms && vel) {
+          this.uniforms.velocity.value = vel.texture;
+        }
         super.update();
       }
     }
 
     class Poisson extends ShaderPass {
-      constructor(simProps) {
+      constructor(simProps: any) {
         super({
           material: {
             vertexShader: face_vert,
@@ -686,18 +818,20 @@ export default function LiquidEther({
               boundarySpace: { value: simProps.boundarySpace },
               pressure: { value: simProps.dst_.texture },
               divergence: { value: simProps.src.texture },
-              px: { value: simProps.cellScale }
-            }
+              px: { value: simProps.cellScale },
+            },
           },
           output: simProps.dst,
           output0: simProps.dst_,
-          output1: simProps.dst
+          output1: simProps.dst,
         });
         this.init();
       }
-      update({ iterations }) {
-        let p_in, p_out;
-        for (let i = 0; i < iterations; i++) {
+      update(...args: any[]) {
+        const { iterations } = (args[0] || {}) as { iterations?: number };
+        let p_in: any, p_out: any;
+        const iter = iterations ?? 0;
+        for (let i = 0; i < iter; i++) {
           if (i % 2 === 0) {
             p_in = this.props.output0;
             p_out = this.props.output1;
@@ -705,7 +839,7 @@ export default function LiquidEther({
             p_in = this.props.output1;
             p_out = this.props.output0;
           }
-          this.uniforms.pressure.value = p_in.texture;
+          if (this.uniforms) this.uniforms.pressure.value = p_in.texture;
           this.props.output = p_out;
           super.update();
         }
@@ -714,7 +848,7 @@ export default function LiquidEther({
     }
 
     class Pressure extends ShaderPass {
-      constructor(simProps) {
+      constructor(simProps: any) {
         super({
           material: {
             vertexShader: face_vert,
@@ -724,22 +858,47 @@ export default function LiquidEther({
               pressure: { value: simProps.src_p.texture },
               velocity: { value: simProps.src_v.texture },
               px: { value: simProps.cellScale },
-              dt: { value: simProps.dt }
-            }
+              dt: { value: simProps.dt },
+            },
           },
-          output: simProps.dst
+          output: simProps.dst,
         });
         this.init();
       }
-      update({ vel, pressure }) {
-        this.uniforms.velocity.value = vel.texture;
-        this.uniforms.pressure.value = pressure.texture;
+      update(...args: any[]) {
+        const { vel, pressure } = (args[0] || {}) as {
+          vel?: any;
+          pressure?: any;
+        };
+        if (this.uniforms && vel && pressure) {
+          this.uniforms.velocity.value = vel.texture;
+          this.uniforms.pressure.value = pressure.texture;
+        }
         super.update();
       }
     }
 
     class Simulation {
-      constructor(options) {
+      options: SimOptions;
+      fbos: Record<string, THREE.WebGLRenderTarget | null> = {
+        vel_0: null,
+        vel_1: null,
+        vel_viscous0: null,
+        vel_viscous1: null,
+        div: null,
+        pressure_0: null,
+        pressure_1: null,
+      };
+      fboSize = new THREE.Vector2();
+      cellScale = new THREE.Vector2();
+      boundarySpace = new THREE.Vector2();
+      advection!: Advection;
+      externalForce!: ExternalForce;
+      viscous!: Viscous;
+      divergence!: Divergence;
+      poisson!: Poisson;
+      pressure!: Pressure;
+      constructor(options?: Partial<SimOptions>) {
         this.options = {
           iterations_poisson: 32,
           iterations_viscous: 32,
@@ -751,20 +910,8 @@ export default function LiquidEther({
           dt: 0.014,
           isViscous: false,
           BFECC: true,
-          ...options
+          ...options,
         };
-        this.fbos = {
-          vel_0: null,
-          vel_1: null,
-          vel_viscous0: null,
-          vel_viscous1: null,
-          div: null,
-          pressure_0: null,
-          pressure_1: null
-        };
-        this.fboSize = new THREE.Vector2();
-        this.cellScale = new THREE.Vector2();
-        this.boundarySpace = new THREE.Vector2();
         this.init();
       }
       init() {
@@ -785,10 +932,14 @@ export default function LiquidEther({
           minFilter: THREE.LinearFilter,
           magFilter: THREE.LinearFilter,
           wrapS: THREE.ClampToEdgeWrapping,
-          wrapT: THREE.ClampToEdgeWrapping
-        };
-        for (let key in this.fbos) {
-          this.fbos[key] = new THREE.WebGLRenderTarget(this.fboSize.x, this.fboSize.y, opts);
+          wrapT: THREE.ClampToEdgeWrapping,
+        } as const;
+        for (const key in this.fbos) {
+          this.fbos[key] = new THREE.WebGLRenderTarget(
+            this.fboSize.x,
+            this.fboSize.y,
+            opts,
+          );
         }
       }
       createShaderPass() {
@@ -797,12 +948,12 @@ export default function LiquidEther({
           fboSize: this.fboSize,
           dt: this.options.dt,
           src: this.fbos.vel_0,
-          dst: this.fbos.vel_1
+          dst: this.fbos.vel_1,
         });
         this.externalForce = new ExternalForce({
           cellScale: this.cellScale,
           cursor_size: this.options.cursor_size,
-          dst: this.fbos.vel_1
+          dst: this.fbos.vel_1,
         });
         this.viscous = new Viscous({
           cellScale: this.cellScale,
@@ -811,21 +962,21 @@ export default function LiquidEther({
           src: this.fbos.vel_1,
           dst: this.fbos.vel_viscous1,
           dst_: this.fbos.vel_viscous0,
-          dt: this.options.dt
+          dt: this.options.dt,
         });
         this.divergence = new Divergence({
           cellScale: this.cellScale,
           boundarySpace: this.boundarySpace,
           src: this.fbos.vel_viscous0,
           dst: this.fbos.div,
-          dt: this.options.dt
+          dt: this.options.dt,
         });
         this.poisson = new Poisson({
           cellScale: this.cellScale,
           boundarySpace: this.boundarySpace,
           src: this.fbos.div,
           dst: this.fbos.pressure_1,
-          dst_: this.fbos.pressure_0
+          dst_: this.fbos.pressure_0,
         });
         this.pressure = new Pressure({
           cellScale: this.cellScale,
@@ -833,60 +984,62 @@ export default function LiquidEther({
           src_p: this.fbos.pressure_0,
           src_v: this.fbos.vel_viscous0,
           dst: this.fbos.vel_0,
-          dt: this.options.dt
+          dt: this.options.dt,
         });
       }
       calcSize() {
-        const width = Math.max(1, Math.round(this.options.resolution * Common.width));
-        const height = Math.max(1, Math.round(this.options.resolution * Common.height));
-        const px_x = 1.0 / width;
-        const px_y = 1.0 / height;
-        this.cellScale.set(px_x, px_y);
+        const width = Math.max(
+          1,
+          Math.round(this.options.resolution * Common.width),
+        );
+        const height = Math.max(
+          1,
+          Math.round(this.options.resolution * Common.height),
+        );
+        this.cellScale.set(1 / width, 1 / height);
         this.fboSize.set(width, height);
       }
       resize() {
         this.calcSize();
-        for (let key in this.fbos) {
-          this.fbos[key].setSize(this.fboSize.x, this.fboSize.y);
+        for (const key in this.fbos) {
+          this.fbos[key]!.setSize(this.fboSize.x, this.fboSize.y);
         }
       }
       update() {
-        if (this.options.isBounce) {
-          this.boundarySpace.set(0, 0);
-        } else {
-          this.boundarySpace.copy(this.cellScale);
-        }
+        if (this.options.isBounce) this.boundarySpace.set(0, 0);
+        else this.boundarySpace.copy(this.cellScale);
         this.advection.update({
           dt: this.options.dt,
           isBounce: this.options.isBounce,
-          BFECC: this.options.BFECC
+          BFECC: this.options.BFECC,
         });
         this.externalForce.update({
           cursor_size: this.options.cursor_size,
           mouse_force: this.options.mouse_force,
-          cellScale: this.cellScale
+          cellScale: this.cellScale,
         });
-        let vel = this.fbos.vel_1;
+        let vel: any = this.fbos.vel_1;
         if (this.options.isViscous) {
           vel = this.viscous.update({
             viscous: this.options.viscous,
             iterations: this.options.iterations_viscous,
-            dt: this.options.dt
+            dt: this.options.dt,
           });
         }
         this.divergence.update({ vel });
         const pressure = this.poisson.update({
-          iterations: this.options.iterations_poisson
+          iterations: this.options.iterations_poisson,
         });
         this.pressure.update({ vel, pressure });
       }
     }
 
     class Output {
+      simulation: Simulation;
+      scene: THREE.Scene;
+      camera: THREE.Camera;
+      output: THREE.Mesh;
       constructor() {
-        this.init();
-      }
-      init() {
         this.simulation = new Simulation();
         this.scene = new THREE.Scene();
         this.camera = new THREE.Camera();
@@ -898,22 +1051,20 @@ export default function LiquidEther({
             transparent: true,
             depthWrite: false,
             uniforms: {
-              velocity: { value: this.simulation.fbos.vel_0.texture },
+              velocity: { value: this.simulation.fbos.vel_0!.texture },
               boundarySpace: { value: new THREE.Vector2() },
               palette: { value: paletteTex },
-              bgColor: { value: bgVec4 }
-            }
-          })
+              bgColor: { value: bgVec4 },
+            },
+          }),
         );
         this.scene.add(this.output);
-      }
-      addScene(mesh) {
-        this.scene.add(mesh);
       }
       resize() {
         this.simulation.resize();
       }
       render() {
+        if (!Common.renderer) return;
         Common.renderer.setRenderTarget(null);
         Common.renderer.render(this.scene, this.camera);
       }
@@ -923,28 +1074,33 @@ export default function LiquidEther({
       }
     }
 
-    class WebGLManager {
-      constructor(props) {
+    class WebGLManager implements LiquidEtherWebGL {
+      props: any;
+      output!: Output;
+      autoDriver?: AutoDriver;
+      lastUserInteraction = performance.now();
+      running = false;
+      private _loop = this.loop.bind(this);
+      private _resize = this.resize.bind(this);
+      private _onVisibility?: () => void;
+      constructor(props: any) {
         this.props = props;
         Common.init(props.$wrapper);
         Mouse.init(props.$wrapper);
         Mouse.autoIntensity = props.autoIntensity;
         Mouse.takeoverDuration = props.takeoverDuration;
-        this.lastUserInteraction = performance.now();
         Mouse.onInteract = () => {
           this.lastUserInteraction = performance.now();
           if (this.autoDriver) this.autoDriver.forceStop();
         };
-        this.autoDriver = new AutoDriver(Mouse, this, {
+        this.autoDriver = new AutoDriver(Mouse, this as any, {
           enabled: props.autoDemo,
           speed: props.autoSpeed,
           resumeDelay: props.autoResumeDelay,
-          rampDuration: props.autoRampDuration
+          rampDuration: props.autoRampDuration,
         });
         this.init();
-        this._loop = this.loop.bind(this);
-        this._resize = this.resize.bind(this);
-        window.addEventListener('resize', this._resize);
+        window.addEventListener("resize", this._resize);
         this._onVisibility = () => {
           const hidden = document.hidden;
           if (hidden) {
@@ -953,10 +1109,10 @@ export default function LiquidEther({
             this.start();
           }
         };
-        document.addEventListener('visibilitychange', this._onVisibility);
-        this.running = false;
+        document.addEventListener("visibilitychange", this._onVisibility);
       }
       init() {
+        if (!Common.renderer) return;
         this.props.$wrapper.prepend(Common.renderer.domElement);
         this.output = new Output();
       }
@@ -971,7 +1127,7 @@ export default function LiquidEther({
         this.output.update();
       }
       loop() {
-        if (!this.running) return; // safety
+        if (!this.running) return;
         this.render();
         rafRef.current = requestAnimationFrame(this._loop);
       }
@@ -989,24 +1145,29 @@ export default function LiquidEther({
       }
       dispose() {
         try {
-          window.removeEventListener('resize', this._resize);
-          document.removeEventListener('visibilitychange', this._onVisibility);
+          window.removeEventListener("resize", this._resize);
+          if (this._onVisibility)
+            document.removeEventListener(
+              "visibilitychange",
+              this._onVisibility,
+            );
           Mouse.dispose();
           if (Common.renderer) {
             const canvas = Common.renderer.domElement;
-            if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+            if (canvas && canvas.parentNode)
+              canvas.parentNode.removeChild(canvas);
             Common.renderer.dispose();
             Common.renderer.forceContextLoss();
           }
-        } catch (e) {
-          void 0;
+        } catch {
+          /* noop */
         }
       }
     }
 
     const container = mountRef.current;
-    container.style.position = container.style.position || 'relative';
-    container.style.overflow = container.style.overflow || 'hidden';
+    container.style.position = container.style.position || "relative";
+    container.style.overflow = container.style.overflow || "hidden";
 
     const webgl = new WebGLManager({
       $wrapper: container,
@@ -1015,7 +1176,7 @@ export default function LiquidEther({
       autoIntensity,
       takeoverDuration,
       autoResumeDelay,
-      autoRampDuration
+      autoRampDuration,
     });
     webglRef.current = webgl;
 
@@ -1034,19 +1195,15 @@ export default function LiquidEther({
         dt,
         BFECC,
         resolution,
-        isBounce
+        isBounce,
       });
-      if (resolution !== prevRes) {
-        sim.resize();
-      }
+      if (resolution !== prevRes) sim.resize();
     };
     applyOptionsFromProps();
-
     webgl.start();
 
-    // IntersectionObserver to pause rendering when not visible
     const io = new IntersectionObserver(
-      entries => {
+      (entries) => {
         const entry = entries[0];
         const isVisible = entry.isIntersecting && entry.intersectionRatio > 0;
         isVisibleRef.current = isVisible;
@@ -1057,7 +1214,7 @@ export default function LiquidEther({
           webglRef.current.pause();
         }
       },
-      { threshold: [0, 0.01, 0.1] }
+      { threshold: [0, 0.01, 0.1] },
     );
     io.observe(container);
     intersectionObserverRef.current = io;
@@ -1078,15 +1235,15 @@ export default function LiquidEther({
       if (resizeObserverRef.current) {
         try {
           resizeObserverRef.current.disconnect();
-        } catch (e) {
-          void 0;
+        } catch {
+          /* noop */
         }
       }
       if (intersectionObserverRef.current) {
         try {
           intersectionObserverRef.current.disconnect();
-        } catch (e) {
-          void 0;
+        } catch {
+          /* noop */
         }
       }
       if (webglRef.current) {
@@ -1111,7 +1268,7 @@ export default function LiquidEther({
     autoIntensity,
     takeoverDuration,
     autoResumeDelay,
-    autoRampDuration
+    autoRampDuration,
   ]);
 
   useEffect(() => {
@@ -1130,7 +1287,7 @@ export default function LiquidEther({
       dt,
       BFECC,
       resolution,
-      isBounce
+      isBounce,
     });
     if (webgl.autoDriver) {
       webgl.autoDriver.enabled = autoDemo;
@@ -1142,9 +1299,7 @@ export default function LiquidEther({
         webgl.autoDriver.mouse.takeoverDuration = takeoverDuration;
       }
     }
-    if (resolution !== prevRes) {
-      sim.resize();
-    }
+    if (resolution !== prevRes) sim.resize();
   }, [
     mouseForce,
     cursorSize,
@@ -1161,8 +1316,14 @@ export default function LiquidEther({
     autoIntensity,
     takeoverDuration,
     autoResumeDelay,
-    autoRampDuration
+    autoRampDuration,
   ]);
 
-  return <div ref={mountRef} className={`liquid-ether-container ${className || ''}`} style={style} />;
+  return (
+    <div
+      ref={mountRef}
+      className={`w-full h-full relative overflow-hidden pointer-events-none touch-none ${className || ""}`}
+      style={style}
+    />
+  );
 }

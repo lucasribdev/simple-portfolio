@@ -8,8 +8,8 @@ import {
   Linkedin,
   Mail,
 } from "lucide-react";
-import { TextFade } from "./components/TextFade";
 import LiquidEther from "./components/LiquidEther";
+import { TextFade } from "./components/TextFade";
 
 const links = [
   {
@@ -91,8 +91,8 @@ function App() {
       <div className="absolute inset-0 z-1 w-full">
         <LiquidEther
           colors={["#3BBF57", "#61d46a", "#A8E6AF"]}
-          mouseForce={10}
-          cursorSize={50}
+          mouseForce={15}
+          cursorSize={75}
           isViscous
           viscous={30}
           iterationsViscous={32}
@@ -274,7 +274,7 @@ function App() {
       <footer className="relative z-10 mx-auto max-w-6xl border-t border-border px-6 py-8 md:px-10">
         <div className="flex flex-col items-start justify-between gap-2 font-mono text-xs text-muted-foreground md:flex-row md:items-center">
           <span>© {new Date().getFullYear()} Lucas Ribeiro</span>
-          <span>Construído com React + TypeScript</span>
+          <span>Construído com React + TypeScript + Tailwind CSS</span>
         </div>
       </footer>
     </main>
