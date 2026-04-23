@@ -2,29 +2,14 @@ import {
   ArrowUpRight,
   Download,
   FolderGit2,
+  Gamepad2,
   Github,
+  HeartHandshake,
   Linkedin,
   Mail,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
-
-declare global {
-  interface Window {
-    VANTA?: {
-      WAVES: (options: {
-        el: HTMLElement;
-        mouseControls: boolean;
-        touchControls: boolean;
-        gyroControls: boolean;
-        minHeight: number;
-        minWidth: number;
-        scale: number;
-        scaleMobile: number;
-        color: number;
-      }) => { destroy?: () => void };
-    };
-  }
-}
+import { TextFade } from "./components/TextFade";
+import LiquidEther from "./components/LiquidEther";
 
 const links = [
   {
@@ -55,42 +40,76 @@ const links = [
 
 const resumeUrl = "/resume_br.pdf";
 
+const featured = [
+  {
+    year: "2026",
+    title: "Templo",
+    description:
+      "Plataforma para descoberta de comunidades, clãs e guildas, conectando jogadores por meio de um catálogo de jogos, anúncios filtráveis e integração com Supabase.",
+    stack: ["React", "TypeScript", "TanStack Start", "Supabase", "BFF"],
+    icon: Gamepad2,
+    url: "https://templo.club",
+  },
+  {
+    year: "2025",
+    title: "Portal Institucional Social Skate",
+    description:
+      "Portal institucional da ONG Social Skate, reunindo projetos, notícias, transparência e captação de apoio para destacar seu impacto social por meio do skate, da educação e da cultura.",
+    stack: [
+      "React",
+      "TypeScript",
+      "TanStack Router",
+      "Tailwind CSS",
+      "CMS",
+      "SSG",
+    ],
+    icon: HeartHandshake,
+    url: "https://socialskate.pages.dev/",
+  },
+];
+
+const stack = [
+  "React",
+  "TypeScript",
+  "TailwindCSS",
+  "React Query",
+  "Zod",
+  "Storybook",
+  "Node.js",
+  "NestJS",
+  "REST APIs",
+  "Prisma",
+  "Supabase",
+  "BFF",
+  "SSR / SSG",
+  "Design Systems",
+];
+
 function App() {
-  const vantaRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!vantaRef.current || !window.VANTA?.WAVES) {
-      return;
-    }
-
-    const effect = window.VANTA.WAVES({
-      el: vantaRef.current,
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.0,
-      minWidth: 200.0,
-      scale: 1.0,
-      scaleMobile: 1.0,
-      color: 0x060a0d,
-    });
-
-    return () => {
-      effect?.destroy?.();
-    };
-  }, []);
-
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div
-        ref={vantaRef}
-        className="absolute inset-0 z-0 opacity-25"
-        aria-hidden="true"
-      />
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,rgba(97,212,106,0.12),transparent_38%),linear-gradient(180deg,rgba(7,11,19,0.24),rgba(7,11,19,0.82))]" />
+      <div className="absolute inset-0 z-1 w-full">
+        <LiquidEther
+          colors={["#3BBF57", "#61d46a", "#A8E6AF"]}
+          mouseForce={10}
+          cursorSize={50}
+          isViscous
+          viscous={30}
+          iterationsViscous={32}
+          iterationsPoisson={32}
+          resolution={0.5}
+          isBounce={false}
+          autoDemo
+          autoSpeed={0.5}
+          autoIntensity={2.2}
+          takeoverDuration={0.25}
+          autoResumeDelay={3000}
+          autoRampDuration={0.6}
+        />
+      </div>
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-8 md:px-10">
         <span className="font-mono text-xs tracking-widest text-muted-foreground">
-          LR · PORTFOLIO / 2026
+          LR · 2026
         </span>
         <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
           <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
@@ -98,50 +117,116 @@ function App() {
         </span>
       </header>
 
-      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-16 md:px-10 md:pt-28">
-        <p className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-primary">
-          ◆ Engenheiro de Software · Frontend
-        </p>
-        <h1 className="text-white text-5xl font-bold leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-          Lucas
-          <br />
-          <span className="text-gradient">Ribeiro.</span>
-        </h1>
-        <p className="mt-10 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-          Mais de <span className="text-foreground">7 anos</span> desenvolvendo
-          aplicações web com foco em{" "}
-          <span className="text-foreground">performance</span>,{" "}
-          <span className="text-foreground">escala</span> e{" "}
-          <span className="text-foreground">boa arquitetura</span>. Trabalho
-          principalmente com <span className="text-foreground">React</span> e{" "}
-          <span className="text-foreground">TypeScript</span>, além de
-          experiência com{" "}
-          <span className="text-foreground">SSR (Next.js, Tanstack Start)</span>{" "}
-          e BFFs com <span className="text-foreground">Node.js</span> e{" "}
-          <span className="text-foreground">NestJS</span>.
-        </p>
+      <TextFade
+        direction="up"
+        className="pt-0 pb-5 flex-col flex justify-center items-center space-y-0"
+      >
+        <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-16 md:px-10 md:pt-28">
+          <p className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-primary">
+            ◆ Engenheiro de Software · Frontend
+          </p>
+          <h1 className="text-white text-5xl font-bold leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+            Lucas
+            <br />
+            <span className="text-gradient">Ribeiro.</span>
+          </h1>
+          <p className="mt-10 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
+            Mais de <span className="text-foreground">7 anos</span> construindo
+            aplicações web com foco em{" "}
+            <span className="text-foreground">performance</span>,{" "}
+            <span className="text-foreground">escala</span> e{" "}
+            <span className="text-foreground">arquitetura bem definida</span>.
+            Especializado em <span className="text-foreground">React</span> e{" "}
+            <span className="text-foreground">TypeScript</span>, com experiência
+            em <span className="text-foreground">SSR</span>,{" "}
+            <span className="text-foreground">BFF</span> e construção de{" "}
+            <span className="text-foreground">design systems</span>.
+          </p>
 
-        <div className="mt-12 flex flex-wrap items-center gap-4">
-          <a
-            href={resumeUrl}
-            download
-            className="group inline-flex items-center gap-3 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:glow"
-          >
-            <Download className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-            Baixar currículo
-          </a>
-          <a
-            href={resumeUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="font-mono text-xs uppercase tracking-widest text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            ver online (PDF)
-          </a>
-        </div>
-      </section>
+          <div className="mt-12 flex flex-wrap gap-2">
+            {stack.map((s, i) => (
+              <span
+                key={s}
+                style={{
+                  animationDelay: `${380 + i * 60}ms`,
+                  animationFillMode: "both",
+                }}
+                className="animate-fade-in rounded-full border border-border bg-card/50 px-4 py-2 font-mono text-xs text-muted-foreground backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:text-foreground"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-12 flex flex-wrap items-center gap-4">
+            <a
+              href={resumeUrl}
+              download
+              className="group inline-flex items-center gap-3 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:glow"
+            >
+              <Download className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+              Baixar currículo
+            </a>
+            <a
+              href={resumeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-xs uppercase tracking-widest text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              ver online (PDF)
+            </a>
+          </div>
+        </section>
+      </TextFade>
 
       <section className="relative z-10 mx-auto max-w-6xl px-6 pb-32 md:px-10">
+        <div className="mb-8 border-b border-border pb-4">
+          <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            ◆ Projetos em destaque
+          </h2>
+        </div>
+
+        <div className="mb-24 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
+          {featured.map(
+            ({ year, title, description, stack: techs, icon: Icon, url }) => (
+              <a
+                key={title}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-col justify-between bg-card p-6 transition-colors hover:bg-secondary md:p-8"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background transition-colors group-hover:border-primary group-hover:text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="font-mono text-xs tracking-widest text-muted-foreground">
+                      {year}
+                    </span>
+                  </div>
+                  <h3 className="mt-6 text-lg font-semibold leading-tight text-foreground md:text-xl">
+                    {title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {description}
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {techs.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-border bg-background px-2.5 py-1 font-mono text-[10px] text-muted-foreground"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </a>
+            ),
+          )}
+        </div>
+
         <div className="mb-8 flex items-end justify-between border-b border-border pb-4">
           <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
             ◆ Contato & Links
