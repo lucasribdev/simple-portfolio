@@ -8,7 +8,6 @@ import {
   Linkedin,
   Mail,
 } from "lucide-react";
-import LiquidEther from "./components/LiquidEther";
 import { TextFade } from "./components/TextFade";
 
 const links = [
@@ -46,6 +45,11 @@ const featured = [
     title: "Templo",
     description:
       "Plataforma para descoberta de comunidades, clãs e guildas, conectando jogadores por meio de um catálogo de jogos, anúncios filtráveis e integração com Supabase.",
+    highlights: [
+      "Desenhei a arquitetura com BFF para proteger regras de negócio e simplificar o cliente.",
+      "Modelei anúncios, perfis, jogos, curtidas e visualizações no Supabase.",
+      "Priorizei descoberta, filtros e SEO para páginas públicas de jogos e anúncios.",
+    ],
     stack: ["React", "TypeScript", "TanStack Start", "Supabase", "BFF"],
     icon: Gamepad2,
     url: "https://templo.club",
@@ -55,6 +59,11 @@ const featured = [
     title: "Portal Institucional Social Skate",
     description:
       "Portal institucional da ONG Social Skate, reunindo projetos, notícias, transparência e captação de apoio para destacar seu impacto social por meio do skate, da educação e da cultura.",
+    highlights: [
+      "Modelei o conteúdo em JSON versionado e integrei Decap CMS para edição editorial sem dependência técnica.",
+      "Configurei geração estática de páginas públicas para projetos e notícias, com metadados por rota.",
+      "Implementei galerias, documentos de transparência, área de doação e consentimento de cookies com Google Analytics.",
+    ],
     stack: [
       "React",
       "TypeScript",
@@ -88,25 +97,6 @@ const stack = [
 function App() {
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 z-1 w-full">
-        <LiquidEther
-          colors={["#3BBF57", "#61d46a", "#A8E6AF"]}
-          mouseForce={15}
-          cursorSize={75}
-          isViscous
-          viscous={30}
-          iterationsViscous={32}
-          iterationsPoisson={32}
-          resolution={0.5}
-          isBounce={false}
-          autoDemo
-          autoSpeed={0.5}
-          autoIntensity={2.2}
-          takeoverDuration={0.25}
-          autoResumeDelay={3000}
-          autoRampDuration={0.6}
-        />
-      </div>
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-8 md:px-10">
         <span className="font-mono text-xs tracking-widest text-muted-foreground">
           LR · 2026
@@ -117,11 +107,8 @@ function App() {
         </span>
       </header>
 
-      <TextFade
-        direction="up"
-        className="pt-0 pb-5 flex-col flex justify-center items-center space-y-0"
-      >
-        <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-16 md:px-10 md:pt-28">
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-16 md:px-10 md:pt-28">
+        <TextFade direction="up">
           <p className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-primary">
             ◆ Engenheiro de Software · Frontend
           </p>
@@ -142,7 +129,6 @@ function App() {
             <span className="text-foreground">BFF</span> e construção de{" "}
             <span className="text-foreground">design systems</span>.
           </p>
-
           <div className="mt-12 flex flex-wrap gap-2">
             {stack.map((s, i) => (
               <span
@@ -176,8 +162,8 @@ function App() {
               ver online (PDF)
             </a>
           </div>
-        </section>
-      </TextFade>
+        </TextFade>
+      </section>
 
       <section className="relative z-10 mx-auto max-w-6xl px-6 pb-32 md:px-10">
         <div className="mb-8 border-b border-border pb-4">
@@ -188,7 +174,15 @@ function App() {
 
         <div className="mb-24 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
           {featured.map(
-            ({ year, title, description, stack: techs, icon: Icon, url }) => (
+            ({
+              year,
+              title,
+              description,
+              highlights,
+              stack: techs,
+              icon: Icon,
+              url,
+            }) => (
               <a
                 key={title}
                 href={url}
@@ -211,6 +205,14 @@ function App() {
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                     {description}
                   </p>
+                  <ul className="mt-3 space-y-2">
+                    {highlights?.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <p className="text-sm text-muted-foreground">{h}</p>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {techs.map((t) => (

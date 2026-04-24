@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# Lucas Ribeiro Portfolio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Portfolio pessoal de Lucas Ribeiro, engenheiro de software frontend com mais de 7 anos de experiencia em aplicacoes web, React, TypeScript, SSR, BFF e design systems.
 
-Currently, two official plugins are available:
+O projeto apresenta uma landing page objetiva com resumo profissional, stack principal, projetos em destaque, curriculo em PDF e links de contato.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Destaques
 
-## React Compiler
+- Interface responsiva com foco em leitura rapida e navegacao direta.
+- Secao de apresentacao com posicionamento profissional e stack tecnica.
+- Projetos em destaque com descricao, ano, tecnologias e links externos.
+- Area de contato com email, LinkedIn, GitHub e repositorios.
+- Animacoes sutis de entrada usando Motion.
+- SEO basico configurado em `index.html`, incluindo description, Open Graph e Twitter metadata.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the ESLint configuration
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS 4
+- Motion
+- Lucide React
+- Geist Font
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Como rodar
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Instale as dependencias:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Rode o ambiente de desenvolvimento:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm run dev
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Gere o build de producao:
+
+```bash
+npm run build
+```
+
+Execute o lint:
+
+```bash
+npm run lint
+```
+
+Visualize o build localmente:
+
+```bash
+npm run preview
+```
+
+## Estrutura
+
+```txt
+public/
+  favicon.svg
+  icons.svg
+  resume_br.pdf
+src/
+  components/
+    TextFade.tsx
+  lib/
+    utils.ts
+  App.tsx
+  index.css
+  main.tsx
+```
+
+## Projetos em destaque
+
+- [Templo](https://templo.club): plataforma para descoberta de comunidades, clas e guildas, com catalogo de jogos, anuncios filtraveis e integracao com Supabase.
+- [Portal Institucional Social Skate](https://socialskate.pages.dev/): portal institucional para a ONG Social Skate, com projetos, noticias, transparencia e captacao de apoio.
+
+## Qualidade
+
+O projeto usa TypeScript, ESLint e build de producao via Vite. Antes de publicar alteracoes, rode:
+
+```bash
+npm run lint
+npm run build
 ```
