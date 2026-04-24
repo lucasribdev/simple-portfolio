@@ -9,6 +9,26 @@ import {
   Mail,
 } from "lucide-react";
 import { TextFade } from "./components/TextFade";
+import LogoLoop from "./components/LogoLoop";
+import {
+  AWS,
+  Cypress,
+  Electron,
+  GoogleCloud,
+  Jest,
+  NestJS,
+  NextJs,
+  NodeJs,
+  PostgreSQL,
+  Prisma,
+  React,
+  ReactQuery,
+  Storybook,
+  Supabase,
+  TailwindCSS,
+  TypeScript,
+  Zod,
+} from "developer-icons";
 
 const links = [
   {
@@ -77,21 +97,92 @@ const featured = [
   },
 ];
 
-const stack = [
-  "React",
-  "TypeScript",
-  "TailwindCSS",
-  "React Query",
-  "Zod",
-  "Storybook",
-  "Node.js",
-  "NestJS",
-  "REST APIs",
-  "Prisma",
-  "Supabase",
-  "BFF",
-  "SSR / SSG",
-  "Design Systems",
+const techLogos = [
+  {
+    node: <React size={30} />,
+    title: "React",
+    href: "https://react.dev",
+  },
+  {
+    node: <NextJs size={30} />,
+    title: "Next.js",
+    href: "https://nextjs.org",
+  },
+  {
+    node: <TypeScript size={30} />,
+    title: "TypeScript",
+    href: "https://typescriptlang.org",
+  },
+  {
+    node: <TailwindCSS size={30} />,
+    title: "Tailwind CSS",
+    href: "https://tailwindcss.com",
+  },
+  {
+    node: <ReactQuery size={30} />,
+    title: "React Query",
+    href: "https://react-query.tanstack.com",
+  },
+  {
+    node: <Zod size={30} />,
+    title: "Zod",
+    href: "https://zod.dev",
+  },
+  {
+    node: <Storybook size={30} />,
+    title: "Storybook",
+    href: "https://storybook.js.org",
+  },
+  {
+    node: <NodeJs size={30} />,
+    title: "Node.js",
+    href: "https://nodejs.org",
+  },
+  {
+    node: <NestJS size={30} />,
+    title: "NestJS",
+    href: "https://nestjs.com",
+  },
+  {
+    node: <Prisma size={30} />,
+    title: "Prisma",
+    href: "https://prisma.io",
+  },
+  {
+    node: <Supabase size={30} />,
+    title: "Supabase",
+    href: "https://supabase.com",
+  },
+  {
+    node: <AWS size={30} />,
+    title: "AWS",
+    href: "https://aws.amazon.com",
+  },
+  {
+    node: <GoogleCloud size={30} />,
+    title: "Google Cloud",
+    href: "https://cloud.google.com",
+  },
+  {
+    node: <PostgreSQL size={30} />,
+    title: "PostgreSQL",
+    href: "https://www.postgresql.org",
+  },
+  {
+    node: <Electron size={30} />,
+    title: "Electron",
+    href: "https://www.electronjs.org",
+  },
+  {
+    node: <Cypress size={30} />,
+    title: "Cypress",
+    href: "https://www.cypress.io",
+  },
+  {
+    node: <Jest size={30} />,
+    title: "Jest",
+    href: "https://jestjs.io",
+  },
 ];
 
 function App() {
@@ -130,18 +221,18 @@ function App() {
             <span className="text-foreground">design systems</span>.
           </p>
           <div className="mt-12 flex flex-wrap gap-2">
-            {stack.map((s, i) => (
-              <span
-                key={s}
-                style={{
-                  animationDelay: `${380 + i * 60}ms`,
-                  animationFillMode: "both",
-                }}
-                className="animate-fade-in rounded-full border border-border bg-card/50 px-4 py-2 font-mono text-xs text-muted-foreground backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:text-foreground"
-              >
-                {s}
-              </span>
-            ))}
+            <LogoLoop
+              logos={techLogos}
+              speed={50}
+              direction="left"
+              logoHeight={30}
+              gap={60}
+              hoverSpeed={0}
+              scaleOnHover
+              fadeOut
+              fadeOutColor="#060a0d"
+              ariaLabel="Stack"
+            />
           </div>
 
           <div className="mt-12 flex flex-wrap items-center gap-4">
